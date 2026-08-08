@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#020617">
+    <title>Reena Study - Pro Estimator</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        project: { 400: '#facc15', 500: '#eab308', 600: '#ca8a04', dark: '#020617', panel: '#0f172a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        body { 
+            background-color: #020617; /* Very Dark Navy */
+            color: #cbd5e1; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            /* Blueprint Grid Effect */
+            background-image: radial-gradient(#334155 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        
+        /* Hide number arrows */
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* Glassmorphism Panels */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Custom Scrollbar for horizontal menu */
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        
+        @media print {
+            body { background: white !important; color: black !important; background-image: none !important; }
+            .print-hide { display: none !important; }
+            .glass-panel { background: white !important; border: 1px solid #cbd5e1 !important; color: black !important; box-shadow: none !important; }
+            * { text-shadow: none !important; box-shadow: none !important; }
+        }
+    </style>
+</head>
+<body class="selection:bg-project-400 selection:text-project-dark pb-24 md:pb-0">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect, Fragment } = React;
+
+        const defaultDb = {
+          materials: {
+            batu_kali: { name: 'Batu Kali', unit: 'm³', price: 280000 },
+            semen: { name: 'Semen (PC 40kg)', unit: 'zak', price: 56000 },
+            pasir_pasang: { name: 'Pasir Pasang', unit: 'm³', price: 250000 },
+            pasir_beton: { name: 'Pasir Beton', unit: 'm³', price: 280000 },
+            kerikil: { name: 'Kerikil / Split', unit: 'm³', price: 300000 },
+            besi_10: { name: 'Besi Beton 10mm (12m)', unit: 'btg', price: 75000 },
+            kawat_bendrat: { name: 'Kawat Bendrat', unit: 'kg', price: 20000 },
+            kayu_bekisting: { name: 'Kayu Sengon/Meranti', unit: 'm³', price: 1800000 },
+            triplek_9mm: { name: 'Triplek 9mm', unit: 'lbr', price: 110000 },
+            paku: { name: 'Paku Biasa', unit: 'kg', price: 20000 },
+            bata_merah: { name: 'Bata Merah', unit: 'bh', price: 900 },
+            hebel: { name: 'Hebel (Bata Ringan)', unit: 'm³', price: 650000 },
+            semen_instan: { name: 'Semen Mortar', unit: 'zak', price: 85000 },
+            baja_ringan: { name: 'Baja Ringan C75', unit: 'btg', price: 95000 },
+            reng_baja: { name: 'Reng Baja', unit: 'btg', price: 45000 },
+            genteng_metal: { name: 'Genteng Metal', unit: 'lbr', price: 38000 },
+            sekrup: { name: 'Baut / Sekrup', unit: 'bh', price: 400 },
+            papan_gypsum: { name: 'Papan Gypsum', unit: 'lbr', price: 55000 },
+            hollow: { name: 'Besi Hollow', unit: 'btg', price: 24000 },
+            // Material Lantai (Sangat Lengkap)
+            keramik_30x30: { name: 'Keramik 30x30', unit: 'dus', price: 65000 },
+            keramik_40x40: { name: 'Keramik 40x40', unit: 'dus', price: 75000 },
+            keramik_60x60: { name: 'Keramik 60x60', unit: 'dus', price: 125000 },
+            granit_60x60: { name: 'Granit 60x60', unit: 'dus', price: 180000 },
+            granit_80x80: { name: 'Granit 80x80', unit: 'dus', price: 250000 },
+            semen_warna: { name: 'Semen Nat Warna', unit: 'kg', price: 15000 },
+            cat_dinding: { name: 'Cat Tembok', unit: 'kg', price: 25000 },
+            plamir: { name: 'Plamir', unit: 'kg', price: 15000 },
+            amplas: { name: 'Amplas', unit: 'lbr', price: 5000 },
+          },
+          labor: {
+            pekerja: { name: 'Pekerja / Kuli', price: 110000 },
+            tukang_batu: { name: 'Tukang Batu', price: 140000 },
+            tukang_besi: { name: 'Tukang Besi', price: 150000 },
+            tukang_kayu: { name: 'Tukang Kayu', price: 150000 },
+            tukang_cat: { name: 'Tukang Cat', price: 145000 },
+            kepala_tukang: { name: 'Kepala Tukang', price: 165000 },
+            mandor: { name: 'Mandor', price: 190000 },
+          }
+        };
+
+        const COEFFICIENTS = {
+          prep: { materials: [{ id: 'kayu_bekisting', qty: 0.012 }, { id: 'paku', qty: 0.02 }, { id: 'triplek_9mm', qty: 0.1 }], labor: [{ id: 'pekerja', qty: 0.1 }, { id: 'tukang_kayu', qty: 0.1 }, { id: 'kepala_tukang', qty: 0.01 }, { id: 'mandor', qty: 0.005 }] },
+          foundation: { materials: [{ id: 'batu_kali', qty: 1.2 }, { id: 'semen', qty: 4.075 }, { id: 'pasir_pasang', qty: 0.52 }], labor: [{ id: 'pekerja', qty: 1.5 }, { id: 'tukang_batu', qty: 0.75 }, { id: 'kepala_tukang', qty: 0.075 }, { id: 'mandor', qty: 0.075 }] },
+          structure: { materials: [{ id: 'semen', qty: 8.15 }, { id: 'pasir_beton', qty: 0.54 }, { id: 'kerikil', qty: 0.76 }, { id: 'besi_10', qty: 15 }, { id: 'kawat_bendrat', qty: 1.5 }, { id: 'kayu_bekisting', qty: 0.2 }, { id: 'triplek_9mm', qty: 0.35 }, { id: 'paku', qty: 0.4 }], labor: [{ id: 'pekerja', qty: 5.3 }, { id: 'tukang_batu', qty: 0.275 }, { id: 'tukang_besi', qty: 0.7 }, { id: 'tukang_kayu', qty: 1.3 }, { id: 'kepala_tukang', qty: 0.227 }, { id: 'mandor', qty: 0.26 }] },
+          wall: { materials: [{ id: 'hebel', qty: 0.083 }, { id: 'semen_instan', qty: 0.12 }], labor: [{ id: 'pekerja', qty: 0.2 }, { id: 'tukang_batu', qty: 0.1 }, { id: 'kepala_tukang', qty: 0.01 }, { id: 'mandor', qty: 0.01 }] },
+          roof: { materials: [{ id: 'baja_ringan', qty: 0.8 }, { id: 'reng_baja', qty: 1.5 }, { id: 'genteng_metal', qty: 1.62 }, { id: 'sekrup', qty: 25 }], labor: [{ id: 'pekerja', qty: 0.2 }, { id: 'tukang_besi', qty: 0.2 }, { id: 'kepala_tukang', qty: 0.02 }, { id: 'mandor', qty: 0.01 }] },
+          ceiling: { materials: [{ id: 'papan_gypsum', qty: 0.36 }, { id: 'hollow', qty: 1.6 }, { id: 'sekrup', qty: 20 }], labor: [{ id: 'pekerja', qty: 0.15 }, { id: 'tukang_kayu', qty: 0.2 }, { id: 'kepala_tukang', qty: 0.02 }, { id: 'mandor', qty: 0.01 }] },
+          lantaiKeramik30: { materials: [{ id: 'keramik_30x30', qty: 1.05 }, { id: 'semen', qty: 0.25 }, { id: 'pasir_pasang', qty: 0.045 }, { id: 'semen_warna', qty: 0.5 }], labor: [{ id: 'pekerja', qty: 0.7 }, { id: 'tukang_batu', qty: 0.35 }, { id: 'kepala_tukang', qty: 0.035 }, { id: 'mandor', qty: 0.035 }] },
+          lantaiKeramik40: { materials: [{ id: 'keramik_40x40', qty: 1.05 }, { id: 'semen', qty: 0.25 }, { id: 'pasir_pasang', qty: 0.045 }, { id: 'semen_warna', qty: 0.5 }], labor: [{ id: 'pekerja', qty: 0.7 }, { id: 'tukang_batu', qty: 0.35 }, { id: 'kepala_tukang', qty: 0.035 }, { id: 'mandor', qty: 0.035 }] },
+          lantaiKeramik60: { materials: [{ id: 'keramik_60x60', qty: 0.73 }, { id: 'semen', qty: 0.25 }, { id: 'pasir_pasang', qty: 0.045 }, { id: 'semen_warna', qty: 0.5 }], labor: [{ id: 'pekerja', qty: 0.7 }, { id: 'tukang_batu', qty: 0.35 }, { id: 'kepala_tukang', qty: 0.035 }, { id: 'mandor', qty: 0.035 }] },
+          lantaiGranit60: { materials: [{ id: 'granit_60x60', qty: 0.73 }, { id: 'semen', qty: 0.25 }, { id: 'pasir_pasang', qty: 0.045 }, { id: 'semen_warna', qty: 0.5 }], labor: [{ id: 'pekerja', qty: 0.7 }, { id: 'tukang_batu', qty: 0.35 }, { id: 'kepala_tukang', qty: 0.035 }, { id: 'mandor', qty: 0.035 }] },
+          lantaiGranit80: { materials: [{ id: 'granit_80x80', qty: 0.55 }, { id: 'semen', qty: 0.25 }, { id: 'pasir_pasang', qty: 0.045 }, { id: 'semen_warna', qty: 0.5 }], labor: [{ id: 'pekerja', qty: 0.7 }, { id: 'tukang_batu', qty: 0.35 }, { id: 'kepala_tukang', qty: 0.035 }, { id: 'mandor', qty: 0.035 }] },
+          paint: { materials: [{ id: 'plamir', qty: 0.1 }, { id: 'amplas', qty: 0.2 }, { id: 'cat_dinding', qty: 0.26 }], labor: [{ id: 'pekerja', qty: 0.02 }, { id: 'tukang_cat', qty: 0.063 }, { id: 'kepala_tukang', qty: 0.006 }, { id: 'mandor', qty: 0.002 }] }
+        };
+
+        const STAGES = [
+          { id: 'prep', title: 'Persiapan Lahan', unit: 'm¹', icon: 'fa-solid fa-compass-drafting' },
+          { id: 'foundation', title: 'Pondasi Batu Kali', unit: 'm³', icon: 'fa-solid fa-layer-group' },
+          { id: 'structure', title: 'Struktur Beton', unit: 'm³', icon: 'fa-solid fa-building' },
+          { id: 'wall', title: 'Pekerjaan Dinding', unit: 'm²', icon: 'fa-solid fa-brick' },
+          { id: 'roof', title: 'Atap & Genteng', unit: 'm²', icon: 'fa-solid fa-house' },
+          { id: 'ceiling', title: 'Plafon & Rangka', unit: 'm²', icon: 'fa-solid fa-border-all' },
+          { id: 'floor', title: 'Pekerjaan Lantai', unit: 'm²', icon: 'fa-solid fa-table-cells-large' },
+          { id: 'paint', title: 'Pengecatan', unit: 'm²', icon: 'fa-solid fa-paint-roller' }
+        ];
+
+        function App() {
+          const [activeTab, setActiveTab] = useState('wbs');
+          const [activeStage, setActiveStage] = useState('floor');
+          
+          const [db, setDb] = useState(() => {
+             const saved = localStorage.getItem('reena_study_prices');
+             return saved ? JSON.parse(saved) : defaultDb;
+          });
+
+          useEffect(() => {
+             localStorage.setItem('reena_study_prices', JSON.stringify(db));
+          }, [db]);
+
+          const [volumes, setVolumes] = useState({ prep: '', foundation: '', structure: '', wall: '', roof: '', ceiling: '', floor: '', paint: '' });
+          const [floorSpec, setFloorSpec] = useState('lantaiGranit60'); // Default Granit
+          const [helperDim, setHelperDim] = useState({ p: '', l: '', t: '' });
+          
+          // UI State
+          const [showFormula, setShowFormula] = useState(true);
+          const [showCalc, setShowCalc] = useState(false);
+          const [calcStr, setCalcStr] = useState('');
+          const [projectInfo, setProjectInfo] = useState({ name: 'Proyek Rumah Tinggal', location: '', image: null });
+
+          const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val || 0);
+
+          const handleImageUpload = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+               const reader = new FileReader();
+               reader.onloadend = () => setProjectInfo({ ...projectInfo, image: reader.result });
+               reader.readAsDataURL(file);
+            }
+          };
+
+          const handleCalcInput = (val) => {
+            if (val === 'C') setCalcStr('');
+            else if (val === '=') {
+                try {
+                    const result = new Function('return ' + calcStr)();
+                    setCalcStr(String(Number(result).toFixed(2)));
+                } catch(e) { setCalcStr('Error'); }
+            }
+            else {
+                if (calcStr === 'Error') setCalcStr(val);
+                else setCalcStr(calcStr + val);
+            }
+          };
+
+          const handleHelperChange = (field, value) => {
+            const newDim = { ...helperDim, [field]: value };
+            setHelperDim(newDim);
+            
+            const p = parseFloat(newDim.p) || 0;
+            const l = parseFloat(newDim.l) || 0;
+            const t_val = parseFloat(newDim.t);
+            
+            if (p && l) {
+               let vol = 0;
+               if (['foundation', 'structure'].includes(activeStage)) {
+                   const t = isNaN(t_val) ? 1 : t_val;
+                   vol = p * l * t;
+               } else if (activeStage === 'roof') {
+                   const degrees = isNaN(t_val) ? 0 : t_val; 
+                   const radians = degrees * (Math.PI / 180);
+                   const cosValue = Math.cos(radians);
+                   vol = cosValue > 0 ? (p * l) / cosValue : p * l;
+               } else if (['ceiling', 'floor', 'wall', 'paint'].includes(activeStage)) {
+                   vol = p * l;
+               } else if (activeStage === 'prep') {
+                   vol = 2 * (p + l);
+               }
+               if (vol > 0) {
+                   setVolumes({ ...volumes, [activeStage]: vol.toFixed(2) });
+               }
+            }
+          };
+
+          const activeResults = useMemo(() => {
+            const results = {};
+            STAGES.forEach(stage => {
+              const vol = parseFloat(volumes[stage.id]) || 0;
+              let coefKey = stage.id;
+              if (stage.id === 'floor') coefKey = floorSpec; // Menggunakan spesifikasi lantai yang dipilih
+
+              const coef = COEFFICIENTS[coefKey];
+              if (vol > 0 && coef) {
+                let totalMat = 0;
+                const matList = coef.materials.map(m => {
+                  const dbMat = db.materials[m.id];
+                  const qty = m.qty * vol;
+                  const cost = qty * dbMat.price;
+                  totalMat += cost;
+                  return { name: dbMat.name, qty, unit: dbMat.unit, price: dbMat.price, cost };
+                });
+
+                let totalLab = 0;
+                let totalHOK = 0;
+                const labList = coef.labor.map(l => {
+                  const dbLab = db.labor[l.id];
+                  const qty = l.qty * vol;
+                  const cost = qty * dbLab.price;
+                  totalLab += cost;
+                  totalHOK += qty;
+                  return { name: dbLab.name, qty, unit: 'OH', price: dbLab.price, cost };
+                });
+
+                const duration = Math.ceil(totalHOK / 4); 
+                results[stage.id] = { materials: matList, labor: labList, totalMat, totalLab, grandTotal: totalMat + totalLab, duration, totalHOK };
+              }
+            });
+            return results;
+          }, [volumes, floorSpec, db]);
+
+          const grandTotal = useMemo(() => Object.values(activeResults).reduce((sum, r) => sum + r.grandTotal, 0), [activeResults]);
+          const totalProjectDays = useMemo(() => {
+             let totalHOK = 0;
+             Object.values(activeResults).forEach(r => totalHOK += r.totalHOK);
+             return Math.ceil(totalHOK / 5); 
+          }, [activeResults]);
+
+          const currentStageResult = activeResults[activeStage];
+
+          const renderWBS = () => (
+            <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 pb-10">
+              
+              {/* Kiri/Atas: Pemilih Tahapan Pekerjaan (Gaya Baru) */}
+              <div className="lg:w-1/3 flex-shrink-0 print-hide">
+                 <div className="sticky top-24 space-y-6">
+                    <div>
+                        <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Tahap Pekerjaan</h2>
+                        {/* Mobile Horizontal Scroll, Desktop Vertical List */}
+                        <div className="flex lg:flex-col overflow-x-auto lg:overflow-visible hide-scroll gap-3 pb-2 lg:pb-0 -mx-4 px-4 lg:mx-0 lg:px-0">
+                            {STAGES.map(s => (
+                            <button
+                                key={s.id}
+                                onClick={() => { setActiveStage(s.id); setHelperDim({p:'', l:'', t:''}); setShowFormula(true); }}
+                                className={`flex-shrink-0 lg:w-full text-left p-3.5 sm:p-4 rounded-2xl border font-bold transition-all duration-300 flex items-center gap-3 shadow-lg ${
+                                activeStage === s.id 
+                                    ? 'bg-project-400 text-project-dark border-project-400 scale-[1.02] shadow-project-500/30' 
+                                    : 'glass-panel text-slate-400 border-slate-700/50 hover:bg-slate-800 hover:text-white'
+                                }`}
+                            >
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${activeStage === s.id ? 'bg-project-dark/10' : 'bg-slate-900/50'}`}>
+                                    <i className={s.icon}></i>
+                                </div>
+                                <span className="text-sm tracking-wide whitespace-nowrap lg:whitespace-normal pr-4 lg:pr-0 flex-1">{s.title}</span>
+                                {volumes[s.id] > 0 && activeStage !== s.id && <i className="fa-solid fa-circle-check text-emerald-400 text-lg hidden lg:block"></i>}
+                            </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="p-5 glass-panel rounded-2xl border border-slate-700/50 shadow-xl hidden lg:block">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 block">Referensi Denah</label>
+                        <input type="file" id="upload-denah" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                        <label htmlFor="upload-denah" className="cursor-pointer block border-2 border-dashed border-slate-600 rounded-xl p-3 text-center hover:border-project-400 transition-colors bg-slate-900/30">
+                            {projectInfo.image ? (
+                            <img src={projectInfo.image} className="mx-auto max-h-32 rounded-lg opacity-80 hover:opacity-100" alt="Denah" />
+                            ) : (
+                            <div className="text-slate-500 py-3"><i className="fa-solid fa-camera-retro text-2xl mb-2"></i><br/><span className="text-xs font-bold">Upload Denah</span></div>
+                            )}
+                        </label>
+                    </div>
+                 </div>
+              </div>
+
+              {/* Kanan/Bawah: Input & Preview Kalkulasi */}
+              <div className="lg:w-2/3 print-hide">
+                 
+                 {/* Khusus Pekerjaan Lantai: Opsi Material yang Mewah dan Jelas */}
+                 {activeStage === 'floor' && (
+                    <div className="mb-6 animate-[fadeIn_0.4s_ease-out]">
+                       <h3 className="text-[11px] font-black text-project-400 uppercase tracking-widest mb-3 pl-1">Pilih Spesifikasi Lantai</h3>
+                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                           {[
+                               { id: 'lantaiKeramik30', name: 'Keramik 30x30', icon: 'fa-border-none' },
+                               { id: 'lantaiKeramik40', name: 'Keramik 40x40', icon: 'fa-border-all' },
+                               { id: 'lantaiKeramik60', name: 'Keramik 60x60', icon: 'fa-square' },
+                               { id: 'lantaiGranit60', name: 'Granit 60x60', icon: 'fa-gem' },
+                               { id: 'lantaiGranit80', name: 'Granit Sultan 80x80', icon: 'fa-crown' }
+                           ].map(floor => (
+                               <button 
+                                  key={floor.id} 
+                                  onClick={() => setFloorSpec(floor.id)}
+                                  className={`p-4 rounded-2xl border text-left transition-all flex flex-col gap-2 ${floorSpec === floor.id ? 'bg-project-400 text-project-dark border-project-400 shadow-[0_0_15px_rgba(250,204,21,0.3)] scale-[1.02]' : 'glass-panel border-slate-700/50 text-slate-400 hover:bg-slate-800'}`}
+                               >
+                                  <i className={`fa-solid ${floor.icon} text-xl ${floorSpec === floor.id ? 'text-project-dark/70' : 'text-slate-500'}`}></i>
+                                  <span className="text-xs sm:text-sm font-black leading-tight">{floor.name}</span>
+                               </button>
+                           ))}
+                       </div>
+                    </div>
+                 )}
+
+                 {/* Kotak Input Utama */}
+                 <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-700/50 mb-8 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-project-500/5 rounded-full blur-3xl -z-10"></div>
+                    
+                    <div className="flex flex-wrap justify-between items-end gap-4 mb-6 relative z-10">
+                        <div>
+                            <label className="block text-[10px] sm:text-[11px] font-black text-project-400 uppercase tracking-widest mb-1">Input Total Volume</label>
+                            <h2 className="text-xl sm:text-2xl font-black text-white">{STAGES.find(s => s.id === activeStage)?.title}</h2>
+                        </div>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <button onClick={() => setShowCalc(!showCalc)} className={`flex-1 sm:flex-none text-xs font-bold px-4 py-2.5 rounded-xl flex justify-center items-center gap-2 transition-all shadow-sm ${showCalc ? 'bg-project-400 text-project-dark' : 'bg-slate-900/80 text-slate-300 border border-slate-700'}`}>
+                                <i className="fa-solid fa-calculator"></i> {showCalc ? 'Tutup Calc' : 'Mini Calc'}
+                            </button>
+                            <button onClick={() => setShowFormula(!showFormula)} className="flex-1 sm:flex-none text-xs font-bold bg-slate-900/80 text-slate-300 px-4 py-2.5 rounded-xl flex justify-center items-center gap-2 transition-all border border-slate-700 shadow-sm hover:bg-slate-800">
+                                <i className="fa-solid fa-graduation-cap"></i> {showFormula ? 'Tutup Info' : 'Panduan Edukasi'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Kalkulator Mini UI */}
+                    {showCalc && (
+                       <div className="mb-6 p-5 bg-slate-950 border border-project-500/30 rounded-2xl shadow-inner max-w-sm mx-auto sm:mx-0 relative z-10">
+                          <input type="text" value={calcStr} readOnly placeholder="0" className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 text-white text-right text-xl font-mono outline-none mb-4" />
+                          <div className="grid grid-cols-4 gap-2 mb-3">
+                              {['7','8','9','/','4','5','6','*','1','2','3','-','C','0','.','+'].map(btn => (
+                                  <button key={btn} onClick={() => handleCalcInput(btn)} className={`p-3 rounded-xl font-bold transition-colors text-lg ${btn === 'C' ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-white hover:bg-project-400 hover:text-slate-900'}`}>{btn}</button>
+                              ))}
+                              <button onClick={() => handleCalcInput('=')} className="col-span-4 bg-slate-700 p-3 rounded-xl text-project-400 font-bold hover:bg-slate-600">= Hitung</button>
+                          </div>
+                          <button onClick={() => {
+                             if(calcStr && calcStr !== 'Error') {
+                                 try {
+                                    const res = new Function('return ' + calcStr)();
+                                    setVolumes({...volumes, [activeStage]: parseFloat(res).toFixed(2)});
+                                    setShowCalc(false);
+                                 } catch(e) {}
+                             }
+                          }} className="w-full bg-emerald-500 text-slate-900 font-black p-3 rounded-xl flex justify-center items-center gap-2 mt-2 shadow-lg hover:bg-emerald-400">
+                              <i className="fa-solid fa-arrow-down"></i> Gunakan Hasil
+                          </button>
+                       </div>
+                    )}
+                    
+                    {/* Panduan & Auto Calc */}
+                    {showFormula && (
+                       <div className="mb-8 p-5 sm:p-6 bg-slate-950/60 border border-emerald-500/20 rounded-2xl shadow-inner relative z-10">
+                          <h4 className="text-[12px] font-black text-emerald-400 mb-3 flex items-center gap-2"><i className="fa-solid fa-book-open"></i> Standar & Edukasi</h4>
+                          
+                          {activeStage === 'roof' ? (
+                              <div>
+                                  <p className="text-[12px] text-slate-400 mb-2 leading-relaxed">Atap pelana/limasan. Masukkan derajat kemiringan agar luas atap miring terhitung akurat.</p>
+                                  <code className="block bg-slate-900 p-3 rounded-xl text-project-400 text-xs font-mono border border-slate-700 shadow-inner">Rumus Atap: [(P + Overstek) x (L + Overstek)] / Cos(Sudut)</code>
+                              </div>
+                          ) : (
+                              <div>
+                                  <p className="text-[12px] text-slate-400 mb-2 leading-relaxed">Gunakan kalkulator bantu di bawah ini untuk menghitung volume secara otomatis dari gambar denah Anda.</p>
+                                  <code className="block bg-slate-900 p-3 rounded-xl text-project-400 text-xs font-mono border border-slate-700 shadow-inner">Rumus Standar: Panjang x Lebar {['foundation', 'structure'].includes(activeStage) ? 'x Tinggi' : ''}</code>
+                              </div>
+                          )}
+
+                          <div className="mt-5 pt-5 border-t border-slate-700/50">
+                             <p className="text-[10px] font-black text-emerald-400 mb-3 uppercase tracking-widest bg-emerald-500/10 inline-block px-2 py-1 rounded">Auto-Kalkulator Volume</p>
+                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{activeStage === 'roof' ? 'P + Overstek' : 'Panjang / P (m)'}</label>
+                                   <input type="number" value={helperDim.p} onChange={(e) => handleHelperChange('p', e.target.value)} placeholder="Contoh: 10" className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 mt-1 text-white text-sm outline-none focus:border-emerald-400" />
+                                </div>
+                                <div>
+                                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{activeStage === 'roof' ? 'L + Overstek' : 'Lebar / L (m)'}</label>
+                                   <input type="number" value={helperDim.l} onChange={(e) => handleHelperChange('l', e.target.value)} placeholder="Contoh: 6" className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 mt-1 text-white text-sm outline-none focus:border-emerald-400" />
+                                </div>
+                                <div>
+                                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{activeStage === 'roof' ? 'Kemiringan (°)' : 'Tinggi / T (m)'}</label>
+                                   <input type="number" value={helperDim.t} onChange={(e) => handleHelperChange('t', e.target.value)} disabled={['ceiling', 'floor', 'prep', 'wall', 'paint'].includes(activeStage)} placeholder={['ceiling', 'floor', 'prep', 'wall', 'paint'].includes(activeStage) ? "-" : (activeStage === 'roof' ? "Cth: 30" : "Cth: 0.20")} className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 mt-1 text-white text-sm outline-none focus:border-emerald-400 disabled:opacity-40" />
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                    )}
+
+                    <div className="flex items-center gap-3 relative z-10">
+                      <input 
+                        type="number" 
+                        value={volumes[activeStage]} 
+                        onChange={(e) => setVolumes({...volumes, [activeStage]: e.target.value})}
+                        placeholder="0.00" 
+                        className="w-full bg-slate-950/80 border-2 border-project-400/50 rounded-2xl px-5 py-4 text-white focus:border-project-400 outline-none text-4xl font-black transition-all shadow-inner"
+                      />
+                      <div className="bg-slate-900 text-slate-300 font-black text-2xl px-6 py-4 rounded-2xl border-2 border-slate-700 shadow-md">
+                        {STAGES.find(s => s.id === activeStage)?.unit}
+                      </div>
+                    </div>
+                 </div>
+
+                 {/* Hasil Kalkulasi Otomatis */}
+                {currentStageResult ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 animate-[fadeIn_0.5s_ease-out]">
+                    <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-slate-700/50 shadow-xl">
+                      <h4 className="text-[11px] font-black text-project-400 uppercase tracking-widest mb-6 flex items-center gap-2 border-b border-slate-700/50 pb-3">
+                         <i className="fa-solid fa-boxes-stacked text-base"></i> Kebutuhan Material
+                      </h4>
+                      <div className="space-y-3">
+                        {currentStageResult.materials.map((m, i) => (
+                          <div key={i} className="flex justify-between items-center text-sm border-b border-slate-800/80 pb-2 border-dashed">
+                            <span className="text-slate-300 font-medium">{m.name}</span>
+                            <span className="text-project-400 font-black tracking-wide">
+                              {m.qty.toFixed(2)} <span className="text-slate-500 text-xs font-bold ml-1">{m.unit}</span>
+                            </span>
+                          </div>
+                        ))}
+                        <div className="pt-4 flex justify-between items-end font-bold text-sm">
+                          <span className="text-slate-500 text-[11px] uppercase tracking-wider">Subtotal Material</span>
+                          <span className="text-white text-lg tracking-tight">{formatIDR(currentStageResult.totalMat)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-slate-700/50 shadow-xl">
+                      <h4 className="text-[11px] font-black text-emerald-400 uppercase tracking-widest mb-6 flex items-center gap-2 border-b border-slate-700/50 pb-3">
+                         <i className="fa-solid fa-users-gear text-base"></i> Kebutuhan Tenaga
+                      </h4>
+                      <div className="space-y-3">
+                        {currentStageResult.labor.map((l, i) => (
+                          <div key={i} className="flex justify-between items-center text-sm border-b border-slate-800/80 pb-2 border-dashed">
+                            <span className="text-slate-300 font-medium">{l.name}</span>
+                            <span className="text-emerald-400 font-black tracking-wide">
+                              {l.qty.toFixed(2)} <span className="text-slate-500 text-xs font-bold ml-1">OH</span>
+                            </span>
+                          </div>
+                        ))}
+                        <div className="pt-4 flex justify-between items-end font-bold text-sm">
+                          <span className="text-slate-500 text-[11px] uppercase tracking-wider">Subtotal Upah</span>
+                          <span className="text-white text-lg tracking-tight">{formatIDR(currentStageResult.totalLab)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2 bg-gradient-to-br from-slate-900 to-project-panel p-6 sm:p-8 rounded-3xl border border-project-600/30 shadow-2xl flex flex-col sm:flex-row justify-between items-center gap-6 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-project-500/10 rounded-full blur-3xl"></div>
+                      <div className="text-center sm:text-left relative z-10 w-full sm:w-auto">
+                        <p className="font-black text-project-500 uppercase tracking-widest text-[11px] mb-2 bg-project-500/10 inline-block px-3 py-1 rounded-full border border-project-500/20">
+                          Total Biaya {STAGES.find(s => s.id === activeStage)?.title}
+                        </p>
+                        <div className="mt-2 flex items-center justify-center sm:justify-start gap-2 text-slate-400 text-xs font-medium">
+                            <i className="fa-solid fa-clock text-slate-500"></i> Estimasi selesai: <strong className="text-emerald-400">{currentStageResult.duration} Hari Kerja</strong>
+                        </div>
+                      </div>
+                      <p className="text-4xl sm:text-5xl font-black text-white tracking-tighter relative z-10 drop-shadow-lg">{formatIDR(currentStageResult.grandTotal)}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-20 glass-panel rounded-3xl border border-slate-700/50 border-dashed">
+                     <i className="fa-solid fa-ruler-combined text-4xl text-slate-600 mb-4 block"></i>
+                     <p className="text-slate-400 font-medium text-sm">Silakan masukkan total volume pekerjaan di atas.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+
+          const renderPrices = () => (
+             <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-700/50 shadow-2xl mb-12 mt-4 print-hide animate-[fadeIn_0.5s_ease-out]">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 border-b border-slate-700/50 pb-6">
+                   <div>
+                       <h2 className="text-2xl font-black uppercase text-white tracking-wide">Database Harga Lokal</h2>
+                       <p className="text-sm text-slate-400 mt-2 font-medium">Sesuaikan harga material dengan toko bangunan di kota Anda.</p>
+                   </div>
+                </div>
+                <div className="text-xs text-emerald-300 mb-8 bg-emerald-900/20 p-4 rounded-xl border border-emerald-500/20 leading-relaxed font-medium flex gap-3 shadow-inner">
+                    <i className="fa-solid fa-cloud-arrow-down text-lg mt-0.5"></i> 
+                    <p><strong>Auto-Save Offline Aktif:</strong> Perubahan harga akan disimpan permanen ke memori HP Anda. Tidak perlu internet untuk mengaksesnya kembali esok hari.</p>
+                </div>
+
+                <h3 className="text-xs font-black text-project-400 uppercase tracking-widest mb-5 mt-8 border-l-4 border-project-400 pl-3">Material Bangunan</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                   {Object.keys(db.materials).map(key => (
+                      <div key={key} className="bg-slate-900/80 p-4 rounded-2xl border border-slate-700/60 focus-within:border-project-400 transition-all shadow-md">
+                         <div className="flex justify-between items-center mb-3">
+                            <span className="text-[13px] font-bold text-slate-300">{db.materials[key].name}</span>
+                            <span className="text-[10px] font-bold bg-slate-800 px-2 py-1 rounded-md text-slate-400">{db.materials[key].unit}</span>
+                         </div>
+                         <div className="flex items-center gap-2 bg-slate-950/80 rounded-xl p-2.5 border border-slate-800 shadow-inner">
+                            <span className="text-[11px] text-slate-500 font-black">Rp</span>
+                            <input type="number" value={db.materials[key].price} onChange={(e) => setDb({...db, materials: {...db.materials, [key]: {...db.materials[key], price: parseFloat(e.target.value) || 0}}})} className="w-full bg-transparent text-white font-bold text-right outline-none text-sm" />
+                         </div>
+                      </div>
+                   ))}
+                </div>
+
+                <h3 className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-5 mt-10 border-l-4 border-emerald-400 pl-3">Standar Upah Tukang</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                   {Object.keys(db.labor).map(key => (
+                      <div key={key} className="bg-slate-900/80 p-4 rounded-2xl border border-slate-700/60 focus-within:border-emerald-400 transition-all shadow-md">
+                         <div className="flex justify-between items-center mb-3">
+                            <span className="text-[13px] font-bold text-slate-300">{db.labor[key].name}</span>
+                            <span className="text-[10px] font-bold bg-slate-800 px-2 py-1 rounded-md text-slate-400">Per Hari (OH)</span>
+                         </div>
+                         <div className="flex items-center gap-2 bg-slate-950/80 rounded-xl p-2.5 border border-slate-800 shadow-inner">
+                            <span className="text-[11px] text-slate-500 font-black">Rp</span>
+                            <input type="number" value={db.labor[key].price} onChange={(e) => setDb({...db, labor: {...db.labor, [key]: {...db.labor[key], price: parseFloat(e.target.value) || 0}}})} className="w-full bg-transparent text-white font-bold text-right outline-none text-sm" />
+                         </div>
+                      </div>
+                   ))}
+                </div>
+             </div>
+          );
+
+          const renderReport = () => (
+            <div className="glass-panel text-slate-300 p-6 sm:p-12 rounded-3xl border border-slate-700/50 shadow-2xl mb-12 print:shadow-none print:border-none print:p-0 animate-[fadeIn_0.5s_ease-out]">
+              <div className="flex flex-col md:flex-row justify-between items-start border-b border-slate-700/50 pb-8 mb-8 print:border-b-2 print:border-black">
+                  <div>
+                      <div className="flex items-center gap-3 mb-3 print-hide">
+                          <div className="bg-project-400 p-2.5 rounded-xl text-project-dark"><i className="fa-solid fa-file-contract text-2xl"></i></div>
+                          <h2 className="text-2xl font-black uppercase text-white tracking-wide">Dokumen BoQ</h2>
+                      </div>
+                      <h1 className="text-3xl font-black uppercase hidden print:block mb-2">Rencana Anggaran Biaya (RAB)</h1>
+                      <div className="mt-4 print-hide">
+                         <input type="text" value={projectInfo.name} onChange={(e) => setProjectInfo({...projectInfo, name: e.target.value})} placeholder="Nama Proyek (Edit Disini)" className="bg-transparent border-b border-slate-600 text-xl font-bold text-white outline-none w-full pb-1 focus:border-project-400" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-800 mt-2 hidden print:block">{projectInfo.name}</h3>
+                  </div>
+                  <div className="mt-6 md:mt-0 print-hide w-full md:w-auto">
+                      <button onClick={() => window.print()} className="w-full md:w-auto bg-project-400 hover:bg-project-500 text-project-dark px-8 py-3.5 rounded-xl font-black flex justify-center items-center gap-3 shadow-lg">
+                          <i className="fa-solid fa-print"></i> Cetak Dokumen PDF
+                      </button>
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 print:grid-cols-2">
+                  <div className="bg-slate-900/80 p-6 rounded-2xl border border-slate-700/50 shadow-inner print:bg-white print:border-gray-300">
+                      <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Grand Total Proyek</p>
+                      <p className="text-4xl font-black text-project-400 tracking-tight print:text-black">{formatIDR(grandTotal)}</p>
+                  </div>
+                  <div className="bg-slate-900/80 p-6 rounded-2xl border border-slate-700/50 shadow-inner print:bg-white print:border-gray-300">
+                      <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Estimasi Durasi Kerja</p>
+                      <p className="text-4xl font-black text-white tracking-tight print:text-black">{totalProjectDays} <span className="text-xl text-slate-500 font-bold">Hari</span></p>
+                      <p className="text-xs text-emerald-400 mt-2 font-bold"><i className="fa-solid fa-users mr-1"></i> Rata-rata 5 Pekerja / hari</p>
+                  </div>
+              </div>
+
+              <div className="overflow-x-auto rounded-2xl border border-slate-700/80 print:border-gray-300 shadow-xl">
+                  <table className="w-full text-left text-sm print:text-xs">
+                      <thead className="bg-slate-900/90 border-b border-slate-700/80 print:bg-gray-100 print:border-black">
+                          <tr>
+                              <th className="p-4 font-black text-slate-400 uppercase text-[11px] tracking-widest print:text-black">Uraian Pekerjaan / Bahan</th>
+                              <th className="p-4 font-black text-slate-400 uppercase text-[11px] tracking-widest text-center print:text-black">Vol</th>
+                              <th className="p-4 font-black text-slate-400 uppercase text-[11px] tracking-widest text-center print:text-black">Sat</th>
+                              <th className="p-4 font-black text-slate-400 uppercase text-[11px] tracking-widest text-right print:text-black">Harga Satuan</th>
+                              <th className="p-4 font-black text-slate-400 uppercase text-[11px] tracking-widest text-right print:text-black">Total Biaya</th>
+                          </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/50 print:divide-gray-300">
+                          {STAGES.map(s => {
+                              const res = activeResults[s.id];
+                              if (!res) return null;
+                              return (
+                                  <Fragment key={s.id}>
+                                      <tr className="bg-slate-950/80 print:bg-gray-200">
+                                          <td colSpan={5} className="p-4 font-black text-white uppercase tracking-wider border-l-4 border-project-400 print:text-black print:border-black">
+                                              {s.title}
+                                          </td>
+                                      </tr>
+                                      
+                                      {res.materials.length > 0 && (
+                                          <tr><td colSpan={5} className="px-5 py-2 font-bold text-project-500 text-[10px] uppercase tracking-widest bg-slate-900/50 print:bg-white print:text-black">A. Material</td></tr>
+                                      )}
+                                      {res.materials.map((m, i) => (
+                                          <tr key={`m-${i}`} className="hover:bg-slate-800/40 print:bg-white">
+                                              <td className="px-5 py-3 pl-8 text-slate-300 print:text-black">- {m.name}</td>
+                                              <td className="px-5 py-3 text-center font-bold text-slate-400 print:text-black">{m.qty.toFixed(2)}</td>
+                                              <td className="px-5 py-3 text-center text-slate-500 text-xs font-bold print:text-black">{m.unit}</td>
+                                              <td className="px-5 py-3 text-right text-slate-400 print:text-black">{formatIDR(m.price)}</td>
+                                              <td className="px-5 py-3 text-right font-black text-slate-200 print:text-black">{formatIDR(m.cost)}</td>
+                                          </tr>
+                                      ))}
+
+                                      {res.labor.length > 0 && (
+                                          <tr><td colSpan={5} className="px-5 py-2 font-bold text-emerald-500 text-[10px] uppercase tracking-widest bg-slate-900/50 print:bg-white print:text-black">B. Tenaga Kerja</td></tr>
+                                      )}
+                                      {res.labor.map((l, i) => (
+                                          <tr key={`l-${i}`} className="hover:bg-slate-800/40 print:bg-white">
+                                              <td className="px-5 py-3 pl-8 text-slate-300 print:text-black">- {l.name}</td>
+                                              <td className="px-5 py-3 text-center font-bold text-slate-400 print:text-black">{l.qty.toFixed(2)}</td>
+                                              <td className="px-5 py-3 text-center text-slate-500 text-xs font-bold print:text-black">OH</td>
+                                              <td className="px-5 py-3 text-right text-slate-400 print:text-black">{formatIDR(l.price)}</td>
+                                              <td className="px-5 py-3 text-right font-black text-slate-200 print:text-black">{formatIDR(l.cost)}</td>
+                                          </tr>
+                                      ))}
+
+                                      <tr className="bg-slate-900/30 print:bg-gray-100 border-t border-slate-700/50">
+                                          <td colSpan={4} className="px-5 py-4 text-right font-bold text-slate-500 text-[11px] uppercase tracking-widest print:text-black">Subtotal {s.title}:</td>
+                                          <td className="px-5 py-4 text-right font-black text-project-400 text-lg print:text-black">{formatIDR(res.grandTotal)}</td>
+                                      </tr>
+                                  </Fragment>
+                              );
+                          })}
+                          {grandTotal === 0 && (
+                             <tr><td colSpan={5} className="p-10 text-center text-slate-500 font-medium print:text-black">Belum ada perhitungan WBS yang diisi.</td></tr>
+                          )}
+                      </tbody>
+                  </table>
+              </div>
+            </div>
+          );
+
+          return (
+            <div className="min-h-screen">
+              
+              {/* Floating Top Navigation (Desktop & Mobile) */}
+              <div className="fixed top-0 w-full z-50 print-hide px-4 pt-4 pb-2 bg-gradient-to-b from-[#020617] to-transparent pointer-events-none">
+                  <div className="max-w-max mx-auto glass-panel rounded-full px-5 py-3 flex items-center gap-4 pointer-events-auto shadow-2xl border border-slate-700/80">
+                      <div className="bg-project-400 w-8 h-8 rounded-full flex items-center justify-center text-project-dark shrink-0">
+                          <i className="fa-solid fa-hard-hat text-sm"></i>
+                      </div>
+                      <h1 className="font-black tracking-tight text-white uppercase text-sm sm:text-base hidden sm:block mr-2">Reena <span className="text-project-400">Study</span></h1>
+                      
+                      <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-full border border-slate-700">
+                          <button onClick={() => setActiveTab('wbs')} className={`px-4 sm:px-5 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${activeTab === 'wbs' ? 'bg-project-400 text-project-dark shadow-md' : 'text-slate-400 hover:text-white'}`}>
+                              <i className="fa-solid fa-calculator"></i> <span className="hidden sm:inline">Kalkulasi WBS</span><span className="sm:hidden">WBS</span>
+                          </button>
+                          <button onClick={() => setActiveTab('prices')} className={`px-4 sm:px-5 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${activeTab === 'prices' ? 'bg-project-400 text-project-dark shadow-md' : 'text-slate-400 hover:text-white'}`}>
+                              <i className="fa-solid fa-tags"></i> <span className="hidden sm:inline">Database Harga</span><span className="sm:hidden">Harga</span>
+                          </button>
+                          <button onClick={() => setActiveTab('report')} className={`px-4 sm:px-5 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${activeTab === 'report' ? 'bg-project-400 text-project-dark shadow-md' : 'text-slate-400 hover:text-white'}`}>
+                              <i className="fa-solid fa-file-invoice"></i> <span className="hidden sm:inline">Laporan BoQ</span><span className="sm:hidden">BoQ</span>
+                          </button>
+                      </div>
+                  </div>
+              </div>
+
+              {/* Main Content Area */}
+              <main className="max-w-6xl mx-auto px-4 pt-28 pb-10">
+                 {activeTab === 'wbs' ? renderWBS() : (activeTab === 'prices' ? renderPrices() : renderReport())}
+              </main>
+
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
